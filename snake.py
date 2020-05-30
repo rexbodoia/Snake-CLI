@@ -5,8 +5,7 @@ from pynput import keyboard
 
 WIDTH = 65
 HEIGHT = 25
-# SPEED = 0.15
-SPEED = 0.5
+SPEED = 0.15
 SNAKE_SYMBOL = 'X'
 FOOD_SYMBOL = 'O'
 KEY_DICT = {'w': 'UP', 's': 'DOWN', 'a': 'LEFT', 'd': 'RIGHT'}
@@ -27,38 +26,25 @@ class Square:
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y
 
-class Food:
-    def __init__(self, snake):
-        self.x = random.randint(0, WIDTH)
-        self.y = random.randint(0, HEIGHT)
-        self.square = Square(x = self.x, y = self.y)
-        def already_occupied(x, y):
-            already_occupied = False
-            for square in snake.body:
-                if x == square.x and y == square.y:
-                    already_occupied = True
-            return already_occupied
-        while already_occupied(self.x, self.y):
-            self.x = random.randint(0, WIDTH)
-            self.y = random.randint(0, HEIGHT)
-            self.square = Square(self.x, self.y)
-
 class Snake:
     def __init__(self, dir, *body):
-        self.body = list(body)
+        self.body = []
+        for segment in body:
+            self.body.append((segment, dir))
         self.turns = [(body[0], dir)]
 
-    def next_square(self, dir):
-        x = self.body[0].x
-        y = self.body[0].y
+    def next_square(self):
+        head, dir = self.body[0]
+        x = head.x
+        y = head.y
         if dir == 'UP':
-            y = self.body[0].y - 1
+            y = head.y - 1
         elif dir == 'DOWN':
-            y = self.body[0].y + 1
+            y = head.y + 1
         elif dir == 'LEFT':
-            x = self.body[0].x - 1
+            x = head.x - 1
         elif dir == 'RIGHT':
-            x = self.body[0].x + 1
+            x = head.x + 1
         return Square(x = x, y = y)
 
     def shift_square(self, square, dir):
@@ -71,30 +57,43 @@ class Snake:
         elif dir == 'RIGHT':
             square.x += 1
 
-    def move(self, dir):
-        for square in self.body:
-            found_turn = False
+    def move(self):
+        for segment in range(len(self.body)):
+            square, dir = self.body[segment]
             for (turn_square, turn_dir) in self.turns:
-                print(turn_square.x, turn_square.y, turn_dir)
                 if turn_square == square:
-                    found_turn = True
-                    self.shift_square(square, turn_dir)
-            if not found_turn:
-                self.shift_square(square, dir)
+                    dir = turn_dir
+                    self.body[segment] = square, dir
+            self.shift_square(square, dir)
 
     def turn(self, dir):
-        # self.dir = dir
-        head = self.body[0]
-        self.turns.append(head, dir)
+        head, old_dir = self.body[0]
+        self.turns.append((head, dir))
+        self.body[0] = head, dir
 
     def grow(self):
-        tail = self.body[-1]
+        tail, dir = self.body[-1]
         square = Square(x = tail.x, y = tail.y)
-        # self.move(self.dir)
-        self.body.append(square)
+        self.body.append((square, dir))
 
 class Game:
-    def __init__(self, width, height, food, snake):
+    def gen_food(self):
+        def already_occupied(x, y):
+            already_occupied = False
+            for (square, _dir) in self.snake.body:
+                if x == square.x and y == square.y:
+                    already_occupied = True
+            return already_occupied
+        gen_x = lambda x : random.randint(1, x - 2)
+        gen_y = lambda y : random.randint(1, y - 2)
+        x = gen_x(WIDTH)
+        y = gen_y(HEIGHT)
+        while already_occupied(x, y):
+            x = gen_x(WIDTH)
+            y = gen_y(HEIGHT)
+        self.food = Square(x = x, y = y)
+
+    def __init__(self, width, height, snake):
         grid = []
         for row in range(height):
             row = []
@@ -103,7 +102,7 @@ class Game:
             grid.append(row)
         self.grid = grid
         self.snake = snake
-        self.food = food
+        self.gen_food()
 
     def display(self):
         def print_border(symbol):
@@ -120,7 +119,7 @@ class Game:
                     empty = False
                     print(FOOD_SYMBOL, end='')
                 else:
-                    for segment in self.snake.body:
+                    for (segment, _dir) in self.snake.body:
                         if segment.x == col and segment.y == row:
                             empty = False
                             print(SNAKE_SYMBOL, end='')
@@ -141,14 +140,13 @@ def random_dir():
 if __name__ == '__main__':
     starting_dir = random_dir()
     snake = Snake(starting_dir, Square())
-    food = Food(snake)
-    game = Game(WIDTH, HEIGHT, food, snake)
+    game = Game(WIDTH, HEIGHT, snake)
     is_interrupted = False
 
     def on_press(key):
         try:
             dir = KEY_DICT[key.char]
-            snake.move(dir)
+            snake.turn(dir)
         except KeyError or AttributeError:
             global is_interrupted
             is_interrupted = True
@@ -160,13 +158,10 @@ if __name__ == '__main__':
         print(is_interrupted)
         clear_screen()
         game.display()
-        # if snake.next_square(dir) == food.square:
-        #     food = Food(snake)
-        #     snake.grow()
-
-        # snake.grow()
-
-        snake.move(starting_dir)
+        if snake.next_square() == game.food:
+            game.gen_food()
+            snake.grow()
+        snake.move()
         time.sleep(SPEED)
     clear_screen()
     game.display()
