@@ -122,33 +122,32 @@ if __name__ == '__main__':
     snake = Snake(Square(x=5,y=5),Square(x=5,y=6))
     food = Food(snake)
     game = Game(WIDTH, HEIGHT, food, snake)
+    is_interrupted = False
+    key_dict = {'w': 'UP', 's': 'DOWN', 'a': 'LEFT', 'd': 'RIGHT'}
+
     def on_press(key):
         try:
-            if key.char == 'w':
-                dir = 'UP'
-            elif key.char == 's':
-                dir = 'DOWN'
-            elif key.char == 'a':
-                dir = 'LEFT'
-            elif key.char == 'd':
-                dir = 'RIGHT'
+            dir = key_dict[key.char]
             snake.move(dir)
-        except AttributeError:
-            print("Error")
+        except KeyError or AttributeError:
+            global is_interrupted
+            is_interrupted = True
+            return False
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
-    # while True:
-    # clear_screen()
+    while not is_interrupted:
+        print(is_interrupted)
+        clear_screen()
+        game.display()
+        # if snake.next_square(dir) == food.square:
+        #     food = Food(snake)
+        #     snake.grow()
+
+        # snake.grow()
+
+        snake.move(snake.dir)
+        time.sleep(SPEED)
+    clear_screen()
     game.display()
-    # if snake.next_square(dir) == food.square:
-    #     food = Food(snake)
-    #     snake.grow()
-
-    # snake.grow()
-
-    # snake.move(snake.dir)
-    time.sleep(SPEED)
-    # clear_screen()
-    # display(snake)
     listener.join()
