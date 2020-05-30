@@ -13,26 +13,6 @@ def clear_screen():
     for i in range(100):
         print()
 
-def display(snake, food):
-    horizontal_div = ''
-    for i in range(WIDTH):
-        horizontal_div += '-'
-    print(horizontal_div)
-    for y in range(HEIGHT):
-        print('|', end = '')
-        spaces = ''
-        for x in range(WIDTH - 3):
-            if x == food.x and y == food.y:
-                spaces += FOOD_SYMBOL
-            else:
-                for square in snake.body:
-                    if x == square.x and y == square.y:
-                        spaces += SNAKE_SYMBOL
-                    else:
-                        spaces += ' '
-        print(spaces, '|')
-    print(horizontal_div)
-
 class Square:
     def __init__(self, **coordinates):
         x = coordinates.get('x', None)
@@ -101,9 +81,47 @@ class Snake:
         self.move(self.dir)
         self.body.append(square)
 
+class Game:
+    def __init__(self, width, height, food, snake):
+        grid = []
+        for row in range(height):
+            row = []
+            for col in range(width):
+                row.append(None)
+            grid.append(row)
+        self.grid = grid
+        self.snake = snake
+        self.food = food
+
+    def display(self):
+        def print_border(symbol):
+            line = ''
+            for i in range(WIDTH):
+                line += symbol
+            print(line)
+        print_border('_')
+        for row in range(len(self.grid)):
+            print('|', end='')
+            for col in range(len(self.grid[row]) - 2):
+                empty = True
+                if self.food.x == col and self.food.y == row:
+                    empty = False
+                    print(FOOD_SYMBOL, end='')
+                else:
+                    for segment in self.snake.body:
+                        if segment.x == col and segment.y == row:
+                            empty = False
+                            print(SNAKE_SYMBOL, end='')
+                if empty:
+                    print(' ', end='')
+            print('|')
+        print_border('-')
+
 if __name__ == '__main__':
-    snake = Snake(Square())
+    # snake = Snake(Square())
+    snake = Snake(Square(x=5,y=5),Square(x=5,y=6))
     food = Food(snake)
+    game = Game(WIDTH, HEIGHT, food, snake)
     def on_press(key):
         try:
             if key.char == 'w':
@@ -119,14 +137,18 @@ if __name__ == '__main__':
             print("Error")
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
-    while True:
-        clear_screen()
-        display(snake, food)
-        if snake.next_square(dir) == food.square:
-            food = Food(snake)
-            snake.grow()
-        snake.move(snake.dir)
-        time.sleep(SPEED)
-    clear_screen()
-    display(snake)
+
+    # while True:
+    # clear_screen()
+    game.display()
+    # if snake.next_square(dir) == food.square:
+    #     food = Food(snake)
+    #     snake.grow()
+
+    # snake.grow()
+
+    # snake.move(snake.dir)
+    time.sleep(SPEED)
+    # clear_screen()
+    # display(snake)
     listener.join()
