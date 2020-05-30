@@ -26,12 +26,28 @@ class Square:
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y
 
+class Turn:
+    def __init__(self, square, dir):
+        self.square = square
+        self.dir = dir
+        self.age = 0
+
+    def age_by_one(self): self.age += 1
+
 class Snake:
-    def __init__(self, dir, *body):
+    def head(self):
+        head, dir = self.body[0]
+        return head
+
+    def tail(self):
+        tail, dir = self.body[-1]
+        return tail
+
+    def __init__(self, dir, *segments):
         self.body = []
-        for segment in body:
+        for segment in segments:
             self.body.append((segment, dir))
-        self.turns = [(body[0], dir)]
+        self.turns = [Turn(self.head(), dir)]
 
     def next_square(self):
         head, dir = self.body[0]
@@ -45,7 +61,7 @@ class Snake:
             x = head.x - 1
         elif dir == 'RIGHT':
             x = head.x + 1
-        return Square(x = x, y = y)
+        return Square(x=x, y=y)
 
     def shift_square(self, square, dir):
         if dir == 'UP':
@@ -58,21 +74,29 @@ class Snake:
             square.x += 1
 
     def move(self):
-        for segment in range(len(self.body)):
+        length = len(self.body)
+        for segment in range(length):
             square, dir = self.body[segment]
-            for (turn_square, turn_dir) in self.turns:
-                if turn_square == square:
-                    dir = turn_dir
+            for turn_idx in range(len(self.turns)):
+                turn = self.turns[turn_idx]
+                if turn.age > length:
+                    self.turns.pop(turn_idx)
+                elif turn.square == square:
+                    dir = turn.dir
                     self.body[segment] = square, dir
+                turn.age_by_one()
+                print('turn_square:', turn.square.x, turn.square.y, turn.dir, turn.age)
+                print('segment:', square.x, square.y, dir)
             self.shift_square(square, dir)
 
     def turn(self, dir):
-        head, old_dir = self.body[0]
-        self.turns.append((head, dir))
+        head = self.head()
+        self.turns.append(Turn(head, dir))
         self.body[0] = head, dir
 
     def grow(self):
         tail, dir = self.body[-1]
+        self.move()
         square = Square(x = tail.x, y = tail.y)
         self.body.append((square, dir))
 
@@ -91,7 +115,7 @@ class Game:
         while already_occupied(x, y):
             x = gen_x(WIDTH)
             y = gen_y(HEIGHT)
-        self.food = Square(x = x, y = y)
+        self.food = Square(x=x, y=y)
 
     def __init__(self, width, height, snake):
         grid = []
@@ -147,7 +171,7 @@ if __name__ == '__main__':
         try:
             dir = KEY_DICT[key.char]
             snake.turn(dir)
-        except KeyError or AttributeError:
+        except (KeyError, AttributeError):
             global is_interrupted
             is_interrupted = True
             return False
@@ -155,13 +179,13 @@ if __name__ == '__main__':
     listener.start()
 
     while not is_interrupted:
-        print(is_interrupted)
         clear_screen()
         game.display()
         if snake.next_square() == game.food:
             game.gen_food()
             snake.grow()
-        snake.move()
+        else:
+            snake.move()
         time.sleep(SPEED)
     clear_screen()
     game.display()
