@@ -5,13 +5,11 @@ from pynput import keyboard
 
 WIDTH = 65
 HEIGHT = 25
-SPEED = 0.15
+# SPEED = 0.15
+SPEED = 0.5
 SNAKE_SYMBOL = 'X'
 FOOD_SYMBOL = 'O'
-
-def clear_screen():
-    for i in range(100):
-        print()
+KEY_DICT = {'w': 'UP', 's': 'DOWN', 'a': 'LEFT', 'd': 'RIGHT'}
 
 class Square:
     def __init__(self, **coordinates):
@@ -46,9 +44,9 @@ class Food:
             self.square = Square(self.x, self.y)
 
 class Snake:
-    def __init__(self, *body):
-        self.dir = 'DOWN'
+    def __init__(self, dir, *body):
         self.body = list(body)
+        self.turns = [(body[0], dir)]
 
     def next_square(self, dir):
         x = self.body[0].x
@@ -63,22 +61,36 @@ class Snake:
             x = self.body[0].x + 1
         return Square(x = x, y = y)
 
+    def shift_square(self, square, dir):
+        if dir == 'UP':
+            square.y -= 1
+        elif dir == 'DOWN':
+            square.y += 1
+        elif dir == 'LEFT':
+            square.x -= 1
+        elif dir == 'RIGHT':
+            square.x += 1
+
     def move(self, dir):
-        self.dir = dir
         for square in self.body:
-            if dir == 'UP':
-                square.y -= 1
-            elif dir == 'DOWN':
-                square.y += 1
-            elif dir == 'LEFT':
-                square.x -= 1
-            elif dir == 'RIGHT':
-                square.x += 1
+            found_turn = False
+            for (turn_square, turn_dir) in self.turns:
+                print(turn_square.x, turn_square.y, turn_dir)
+                if turn_square == square:
+                    found_turn = True
+                    self.shift_square(square, turn_dir)
+            if not found_turn:
+                self.shift_square(square, dir)
+
+    def turn(self, dir):
+        # self.dir = dir
+        head = self.body[0]
+        self.turns.append(head, dir)
 
     def grow(self):
         tail = self.body[-1]
         square = Square(x = tail.x, y = tail.y)
-        self.move(self.dir)
+        # self.move(self.dir)
         self.body.append(square)
 
 class Game:
@@ -117,17 +129,25 @@ class Game:
             print('|')
         print_border('-')
 
+def clear_screen():
+    for i in range(100):
+        print()
+
+def random_dir():
+    dirs = list(KEY_DICT.values())
+    i = random.randint(0, len(dirs) - 1)
+    return dirs[i]
+
 if __name__ == '__main__':
-    # snake = Snake(Square())
-    snake = Snake(Square(x=5,y=5),Square(x=5,y=6))
+    starting_dir = random_dir()
+    snake = Snake(starting_dir, Square())
     food = Food(snake)
     game = Game(WIDTH, HEIGHT, food, snake)
     is_interrupted = False
-    key_dict = {'w': 'UP', 's': 'DOWN', 'a': 'LEFT', 'd': 'RIGHT'}
 
     def on_press(key):
         try:
-            dir = key_dict[key.char]
+            dir = KEY_DICT[key.char]
             snake.move(dir)
         except KeyError or AttributeError:
             global is_interrupted
@@ -146,7 +166,7 @@ if __name__ == '__main__':
 
         # snake.grow()
 
-        snake.move(snake.dir)
+        snake.move(starting_dir)
         time.sleep(SPEED)
     clear_screen()
     game.display()
