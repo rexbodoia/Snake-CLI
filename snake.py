@@ -32,7 +32,8 @@ class Turn:
         self.dir = dir
         self.age = 0
 
-    def age_by_one(self): self.age += 1
+    def age_by_one(self):
+        self.age += 1
 
 class Snake:
     def head(self):
@@ -47,7 +48,8 @@ class Snake:
         self.body = []
         for segment in segments:
             self.body.append((segment, dir))
-        self.turns = [Turn(self.head(), dir)]
+        # self.turns = [Turn(self.head(), dir)]
+        self.turns = []
 
     def next_square(self):
         head, dir = self.body[0]
@@ -79,25 +81,28 @@ class Snake:
             square, dir = self.body[segment]
             for turn_idx in range(len(self.turns)):
                 turn = self.turns[turn_idx]
-                if turn.age > length:
+                print(turn.square.x, turn.square.y, square.x, square.y)
+                print(turn.age, length)
+                if turn.age > length + 2:
                     self.turns.pop(turn_idx)
                 elif turn.square == square:
                     dir = turn.dir
                     self.body[segment] = square, dir
                 turn.age_by_one()
-                print('turn_square:', turn.square.x, turn.square.y, turn.dir, turn.age)
-                print('segment:', square.x, square.y, dir)
+            print(square.x, square.y, dir)
             self.shift_square(square, dir)
 
     def turn(self, dir):
         head = self.head()
-        self.turns.append(Turn(head, dir))
+        square = Square(x=head.x, y=head.y)
+        self.turns.append(Turn(square, dir))
         self.body[0] = head, dir
 
     def grow(self):
         tail, dir = self.body[-1]
+        x, y = tail.x, tail.y
         self.move()
-        square = Square(x = tail.x, y = tail.y)
+        square = Square(x=x, y=y)
         self.body.append((square, dir))
 
 class Game:
