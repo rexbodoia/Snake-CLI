@@ -9,7 +9,8 @@ CLEAR_SPACE = 20
 SPEED = 0.15
 SNAKE_SYMBOL = 'X'
 FOOD_SYMBOL = 'O'
-KEY_DICT = {'w': 'UP', 's': 'DOWN', 'a': 'LEFT', 'd': 'RIGHT'}
+UP = 'UP'; DOWN = 'DOWN'; LEFT = 'LEFT'; RIGHT = 'RIGHT'
+KEY_DICT = {'w': UP, 's': DOWN, 'a': LEFT, 'd': RIGHT}
 DIRS = list(KEY_DICT.values())
 
 def clear_screen():
@@ -20,10 +21,10 @@ def random_dir():
     return DIRS[random.randint(0, len(DIRS) - 1)]
 
 def opposite_dir(dir):
-    if dir == 'UP': return 'DOWN'
-    elif dir == 'DOWN': return 'UP'
-    elif dir == 'LEFT': return 'RIGHT'
-    elif dir == 'RIGHT': return 'LEFT'
+    if dir == UP: return DOWN
+    elif dir == DOWN: return UP
+    elif dir == LEFT: return RIGHT
+    elif dir == RIGHT: return LEFT
 
 def on_press(key, snake):
     try:
@@ -86,24 +87,24 @@ class Snake:
         else:
             head = self.head()
         x = head.x; y = head.y
-        if dir == 'UP':
+        if dir == UP:
             y = head.y - 1
-        elif dir == 'DOWN':
+        elif dir == DOWN:
             y = head.y + 1
-        elif dir == 'LEFT':
+        elif dir == LEFT:
             x = head.x - 1
-        elif dir == 'RIGHT':
+        elif dir == RIGHT:
             x = head.x + 1
         return Square(x=x, y=y)
 
     def shift_square(self, square, dir):
-        if dir == 'UP':
+        if dir == UP:
             square.y -= 1
-        elif dir == 'DOWN':
+        elif dir == DOWN:
             square.y += 1
-        elif dir == 'LEFT':
+        elif dir == LEFT:
             square.x -= 1
-        elif dir == 'RIGHT':
+        elif dir == RIGHT:
             square.x += 1
 
     def move(self):
