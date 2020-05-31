@@ -11,7 +11,7 @@ SNAKE_SYMBOL = 'X'
 FOOD_SYMBOL = 'O'
 UP = 'UP'; DOWN = 'DOWN'; LEFT = 'LEFT'; RIGHT = 'RIGHT'
 KEY_DICT = {'w': UP, 's': DOWN, 'a': LEFT, 'd': RIGHT}
-DIRS = list(KEY_DICT.values())
+DIRS = [UP, DOWN, LEFT, RIGHT]
 
 def clear_screen():
     for i in range(CLEAR_SPACE):
