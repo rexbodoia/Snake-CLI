@@ -5,7 +5,7 @@ from pynput import keyboard
 
 WIDTH = 65
 HEIGHT = 25
-SPEED = 0.15
+SPEED = 0.2
 SNAKE_SYMBOL = 'X'
 FOOD_SYMBOL = 'O'
 KEY_DICT = {'w': 'UP', 's': 'DOWN', 'a': 'LEFT', 'd': 'RIGHT'}
@@ -79,18 +79,20 @@ class Snake:
         length = len(self.body)
         for segment in range(length):
             square, dir = self.body[segment]
-            for turn_idx in range(len(self.turns)):
+            turn_idx = 0
+            while turn_idx < (len(self.turns)):
                 turn = self.turns[turn_idx]
-                print(turn.square.x, turn.square.y, square.x, square.y)
-                print(turn.age, length)
-                if turn.age > length + 2:
-                    self.turns.pop(turn_idx)
+                if turn.age > length:
+                    self.turns.remove(turn)
                 elif turn.square == square:
                     dir = turn.dir
                     self.body[segment] = square, dir
-                turn.age_by_one()
-            print(square.x, square.y, dir)
+                    turn_idx += 1
+                else:
+                    turn_idx += 1
             self.shift_square(square, dir)
+        for turn in self.turns:
+            turn.age_by_one()
 
     def turn(self, dir):
         head = self.head()
@@ -158,7 +160,7 @@ class Game:
         print_border('-')
 
 def clear_screen():
-    for i in range(100):
+    for i in range(60):
         print()
 
 def random_dir():
