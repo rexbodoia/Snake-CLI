@@ -5,7 +5,7 @@ from pynput import keyboard
 
 WIDTH = 65
 HEIGHT = 25
-SPEED = 0.2
+SPEED = 0.15
 SNAKE_SYMBOL = 'X'
 FOOD_SYMBOL = 'O'
 KEY_DICT = {'w': 'UP', 's': 'DOWN', 'a': 'LEFT', 'd': 'RIGHT'}
@@ -48,7 +48,6 @@ class Snake:
         self.body = []
         for segment in segments:
             self.body.append((segment, dir))
-        # self.turns = [Turn(self.head(), dir)]
         self.turns = []
 
     def next_square(self):
@@ -94,6 +93,14 @@ class Snake:
         for turn in self.turns:
             turn.age_by_one()
 
+    def get_different_dir(self):
+        dirs = list(KEY_DICT.values())
+        new_dir = dirs[random.randint(0, len(dirs) - 1)]
+        _head, curr_dir = self.body[0]
+        while new_dir == curr_dir:
+            new_dir = dirs[random.randint(0, len(dirs) - 1)]
+        return new_dir
+
     def turn(self, dir):
         head = self.head()
         square = Square(x=head.x, y=head.y)
@@ -134,6 +141,15 @@ class Game:
         self.grid = grid
         self.snake = snake
         self.gen_food()
+
+    def out_of_bounds(self, square):
+        height = len(self.grid)
+        width = len(self.grid[0])
+        left = square.x < 0
+        right = square.x > width - 3
+        top = square.y < 0
+        bottom = square.y > height - 1
+        return left or right or top or bottom
 
     def display(self):
         def print_border(symbol):
@@ -188,9 +204,12 @@ if __name__ == '__main__':
     while not is_interrupted:
         clear_screen()
         game.display()
-        if snake.next_square() == game.food:
+        next_square = snake.next_square()
+        if next_square == game.food:
             game.gen_food()
             snake.grow()
+        elif game.out_of_bounds(next_square):
+            snake.turn(snake.get_different_dir())
         else:
             snake.move()
         time.sleep(SPEED)
