@@ -27,6 +27,7 @@ def opposite_dir(dir):
 
 def on_press(key, snake):
     try:
+        if snake.self_collide(): return False
         dir = KEY_DICT[key.char]
         curr_dir = snake.curr_dir()
         if dir != curr_dir and dir != opposite_dir(curr_dir):
@@ -62,15 +63,15 @@ class Turn:
     def age_by_one(self): self.age += 1
 
 class Snake:
-    def head(self):
-        head, _dir = self.body[0]
-        return head
-
     def __init__(self, dir, *segments):
         self.body = []
         for segment in segments:
             self.body.append((segment, dir))
         self.turns = []
+
+    def head(self):
+        head, _dir = self.body[0]
+        return head
 
     def curr_dir(self):
         _head, dir = self.body[0]
@@ -153,6 +154,17 @@ class Snake:
         return False
 
 class Game:
+    def __init__(self, width, height, snake):
+        grid = []
+        for row in range(height):
+            row = []
+            for col in range(width):
+                row.append(None)
+            grid.append(row)
+        self.grid = grid
+        self.snake = snake
+        self.gen_food()
+
     def gen_food(self):
         def already_occupied(x, y):
             already_occupied = False
@@ -166,17 +178,6 @@ class Game:
         while already_occupied(x, y):
             x = gen_x(WIDTH); y = gen_y(HEIGHT)
         self.food = Square(x=x, y=y)
-
-    def __init__(self, width, height, snake):
-        grid = []
-        for row in range(height):
-            row = []
-            for col in range(width):
-                row.append(None)
-            grid.append(row)
-        self.grid = grid
-        self.snake = snake
-        self.gen_food()
 
     def out_of_bounds(self, square):
         height = len(self.grid)
@@ -232,5 +233,4 @@ if __name__ == '__main__':
         time.sleep(SPEED)
     clear_screen()
     game.display()
-    listener.join()
     print('\nYour score:', snake.length())
