@@ -3,12 +3,31 @@ import time
 import random
 from pynput import keyboard
 
-WIDTH = 65
-HEIGHT = 25
+WIDTH = 45
+HEIGHT = 20
 SPEED = 0.15
 SNAKE_SYMBOL = 'X'
 FOOD_SYMBOL = 'O'
 KEY_DICT = {'w': 'UP', 's': 'DOWN', 'a': 'LEFT', 'd': 'RIGHT'}
+
+def clear_screen():
+    for i in range(40):
+        print()
+
+def random_dir():
+    dirs = list(KEY_DICT.values())
+    i = random.randint(0, len(dirs) - 1)
+    return dirs[i]
+
+def opposite_dir(dir):
+    if dir == 'UP':
+        return 'DOWN'
+    elif dir == 'DOWN':
+        return 'UP'
+    elif dir == 'LEFT':
+        return 'RIGHT'
+    elif dir == 'RIGHT':
+        return 'LEFT'
 
 class Square:
     def __init__(self, **coordinates):
@@ -49,6 +68,10 @@ class Snake:
         for segment in segments:
             self.body.append((segment, dir))
         self.turns = []
+
+    def curr_dir(self):
+        _head, dir = self.body[0]
+        return dir
 
     def next_square(self):
         head, dir = self.body[0]
@@ -97,7 +120,7 @@ class Snake:
         dirs = list(KEY_DICT.values())
         new_dir = dirs[random.randint(0, len(dirs) - 1)]
         _head, curr_dir = self.body[0]
-        while new_dir == curr_dir:
+        while new_dir == curr_dir or new_dir == opposite_dir(curr_dir):
             new_dir = dirs[random.randint(0, len(dirs) - 1)]
         return new_dir
 
@@ -114,6 +137,12 @@ class Snake:
         square = Square(x=x, y=y)
         self.body.append((square, dir))
 
+    def self_collide(self):
+        for (square, dir) in self.body[1:-1]:
+            if self.head() == square:
+                return True
+        return False
+
 class Game:
     def gen_food(self):
         def already_occupied(x, y):
@@ -122,8 +151,8 @@ class Game:
                 if x == square.x and y == square.y:
                     already_occupied = True
             return already_occupied
-        gen_x = lambda x : random.randint(1, x - 2)
-        gen_y = lambda y : random.randint(1, y - 2)
+        gen_x = lambda x : random.randint(1, x - 3)
+        gen_y = lambda y : random.randint(1, y - 1)
         x = gen_x(WIDTH)
         y = gen_y(HEIGHT)
         while already_occupied(x, y):
@@ -175,15 +204,6 @@ class Game:
             print('|')
         print_border('-')
 
-def clear_screen():
-    for i in range(60):
-        print()
-
-def random_dir():
-    dirs = list(KEY_DICT.values())
-    i = random.randint(0, len(dirs) - 1)
-    return dirs[i]
-
 if __name__ == '__main__':
     starting_dir = random_dir()
     snake = Snake(starting_dir, Square())
@@ -193,7 +213,8 @@ if __name__ == '__main__':
     def on_press(key):
         try:
             dir = KEY_DICT[key.char]
-            snake.turn(dir)
+            if dir != snake.curr_dir() and dir != opposite_dir(snake.curr_dir()):
+                snake.turn(dir)
         except (KeyError, AttributeError):
             global is_interrupted
             is_interrupted = True
@@ -201,7 +222,7 @@ if __name__ == '__main__':
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
-    while not is_interrupted:
+    while not is_interrupted and not snake.self_collide():
         clear_screen()
         game.display()
         next_square = snake.next_square()
