@@ -3,31 +3,27 @@ import time
 import random
 from pynput import keyboard
 
-WIDTH = 45
-HEIGHT = 20
+WIDTH = 48
+HEIGHT = 25
+CLEAR_SPACE = 40
 SPEED = 0.15
 SNAKE_SYMBOL = 'X'
 FOOD_SYMBOL = 'O'
 KEY_DICT = {'w': 'UP', 's': 'DOWN', 'a': 'LEFT', 'd': 'RIGHT'}
+DIRS = list(KEY_DICT.values())
 
 def clear_screen():
-    for i in range(40):
+    for i in range(CLEAR_SPACE):
         print()
 
 def random_dir():
-    dirs = list(KEY_DICT.values())
-    i = random.randint(0, len(dirs) - 1)
-    return dirs[i]
+    return DIRS[random.randint(0, len(DIRS) - 1)]
 
 def opposite_dir(dir):
-    if dir == 'UP':
-        return 'DOWN'
-    elif dir == 'DOWN':
-        return 'UP'
-    elif dir == 'LEFT':
-        return 'RIGHT'
-    elif dir == 'RIGHT':
-        return 'LEFT'
+    if dir == 'UP': return 'DOWN'
+    elif dir == 'DOWN': return 'UP'
+    elif dir == 'LEFT': return 'RIGHT'
+    elif dir == 'RIGHT': return 'LEFT'
 
 class Square:
     def __init__(self, **coordinates):
@@ -51,17 +47,12 @@ class Turn:
         self.dir = dir
         self.age = 0
 
-    def age_by_one(self):
-        self.age += 1
+    def age_by_one(self): self.age += 1
 
 class Snake:
     def head(self):
-        head, dir = self.body[0]
+        head, _dir = self.body[0]
         return head
-
-    def tail(self):
-        tail, dir = self.body[-1]
-        return tail
 
     def __init__(self, dir, *segments):
         self.body = []
@@ -75,8 +66,7 @@ class Snake:
 
     def next_square(self):
         head, dir = self.body[0]
-        x = head.x
-        y = head.y
+        x = head.x; y = head.y
         if dir == 'UP':
             y = head.y - 1
         elif dir == 'DOWN':
@@ -106,22 +96,20 @@ class Snake:
                 turn = self.turns[turn_idx]
                 if turn.age > length:
                     self.turns.remove(turn)
-                elif turn.square == square:
-                    dir = turn.dir
-                    self.body[segment] = square, dir
-                    turn_idx += 1
                 else:
+                    if turn.square == square:
+                        dir = turn.dir
+                        self.body[segment] = square, dir
                     turn_idx += 1
             self.shift_square(square, dir)
         for turn in self.turns:
             turn.age_by_one()
 
     def get_different_dir(self):
-        dirs = list(KEY_DICT.values())
-        new_dir = dirs[random.randint(0, len(dirs) - 1)]
+        new_dir = DIRS[random.randint(0, len(DIRS) - 1)]
         _head, curr_dir = self.body[0]
         while new_dir == curr_dir or new_dir == opposite_dir(curr_dir):
-            new_dir = dirs[random.randint(0, len(dirs) - 1)]
+            new_dir = DIRS[random.randint(0, len(DIRS) - 1)]
         return new_dir
 
     def turn(self, dir):
@@ -132,7 +120,7 @@ class Snake:
 
     def grow(self):
         tail, dir = self.body[-1]
-        x, y = tail.x, tail.y
+        x = tail.x; y = tail.y
         self.move()
         square = Square(x=x, y=y)
         self.body.append((square, dir))
@@ -153,11 +141,9 @@ class Game:
             return already_occupied
         gen_x = lambda x : random.randint(1, x - 3)
         gen_y = lambda y : random.randint(1, y - 1)
-        x = gen_x(WIDTH)
-        y = gen_y(HEIGHT)
+        x = gen_x(WIDTH); y = gen_y(HEIGHT)
         while already_occupied(x, y):
-            x = gen_x(WIDTH)
-            y = gen_y(HEIGHT)
+            x = gen_x(WIDTH); y = gen_y(HEIGHT)
         self.food = Square(x=x, y=y)
 
     def __init__(self, width, height, snake):
@@ -210,11 +196,14 @@ if __name__ == '__main__':
     game = Game(WIDTH, HEIGHT, snake)
     is_interrupted = False
 
+    #key listener
     def on_press(key):
         try:
             dir = KEY_DICT[key.char]
-            if dir != snake.curr_dir() and dir != opposite_dir(snake.curr_dir()):
+            curr_dir = snake.curr_dir()
+            if dir != curr_dir and dir != opposite_dir(curr_dir):
                 snake.turn(dir)
+            if snake.self_collide(): return False
         except (KeyError, AttributeError):
             global is_interrupted
             is_interrupted = True
@@ -222,6 +211,7 @@ if __name__ == '__main__':
     listener = keyboard.Listener(on_press=on_press)
     listener.start()
 
+    #run game
     while not is_interrupted and not snake.self_collide():
         clear_screen()
         game.display()
