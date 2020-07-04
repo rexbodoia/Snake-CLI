@@ -1,43 +1,31 @@
 #!/Library/Frameworks/Python.framework/Versions/3.8/bin/python3
-import time
+
 import random
+import time
 from pynput import keyboard
 
 WIDTH = 48
 HEIGHT = 25
-CLEAR_SPACE = 20
-SPEED = 0.15
+SPEED = 0.2
 SNAKE_SYMBOL = 'X'
 FOOD_SYMBOL = 'O'
 UP = 'UP'; DOWN = 'DOWN'; LEFT = 'LEFT'; RIGHT = 'RIGHT'
-KEY_DICT = {'w': UP, 's': DOWN, 'a': LEFT, 'd': RIGHT}
-DIRS = [UP, DOWN, LEFT, RIGHT]
+KEY_DICT = { 'w': UP, 's': DOWN, 'a': LEFT, 'd': RIGHT}
+DIRS = [UP, DOWN, RIGHT, LEFT]
 
-def clear_screen():
-    for i in range(CLEAR_SPACE):
-        print()
+def on_press(key, snake):
+    try:
+        dir = KEY_DICT[key.char]
+        snake.turn(dir)
+    except (KeyError, Attribute):
+        return False
 
 def random_dir():
     return DIRS[random.randint(0, len(DIRS) - 1)]
 
-def opposite_dir(dir):
-    if dir == UP: return DOWN
-    elif dir == DOWN: return UP
-    elif dir == LEFT: return RIGHT
-    elif dir == RIGHT: return LEFT
-
-def on_press(key, snake):
-    try:
-        if snake.self_collide(): return False
-        dir = KEY_DICT[key.char]
-        curr_dir = snake.curr_dir()
-        if dir != curr_dir and dir != opposite_dir(curr_dir):
-            snake.turn(dir)
-        if snake.self_collide(): return False
-    except (KeyError, AttributeError):
-        global is_interrupted
-        is_interrupted = True
-        return False
+def clear_screen():
+    for i in range(50):
+        print()
 
 class Square:
     def __init__(self, **coordinates):
@@ -66,26 +54,19 @@ class Turn:
 class Snake:
     def __init__(self, dir, *segments):
         self.body = []
-        for segment in segments:
-            self.body.append((segment, dir))
+        for square in segments:
+            self.body.append((square, dir))
         self.turns = []
 
     def head(self):
         head, _dir = self.body[0]
         return head
 
-    def curr_dir(self):
-        _head, dir = self.body[0]
-        return dir
-
     def length(self):
         return len(self.body)
 
-    def next_square(self, dir=None):
-        if dir == None:
-            head, dir = self.body[0]
-        else:
-            head = self.head()
+    def next_square(self):
+        head, dir = self.body[0]
         x = head.x; y = head.y
         if dir == UP:
             y = head.y - 1
@@ -124,22 +105,6 @@ class Snake:
         for turn in self.turns:
             turn.age_by_one()
 
-    def get_different_dir(self, game):
-        new_dir = DIRS[random.randint(0, len(DIRS) - 1)]
-        _head, curr_dir = self.body[0]
-        next_square = self.next_square(new_dir)
-        out_of_bounds = game.out_of_bounds(next_square)
-        while new_dir == curr_dir or new_dir == opposite_dir(curr_dir) or out_of_bounds:
-            new_dir = DIRS[random.randint(0, len(DIRS) - 1)]
-            next_square = self.next_square(new_dir)
-            out_of_bounds = game.out_of_bounds(next_square)
-        return new_dir
-
-    def turn(self, dir):
-        head = self.head()
-        square = Square(x=head.x, y=head.y)
-        self.turns.append(Turn(square, dir))
-        self.body[0] = head, dir
 
     def grow(self):
         tail, dir = self.body[-1]
@@ -148,11 +113,11 @@ class Snake:
         square = Square(x=x, y=y)
         self.body.append((square, dir))
 
-    def self_collide(self):
-        for (square, dir) in self.body[1:-1]:
-            if self.next_square() == square:
-                return True
-        return False
+    def turn(self, dir):
+        head = self.head()
+        square = Square(x=head.x, y=head.y)
+        self.turns.append(Turn(square, dir))
+        self.body[0] = head, dir
 
 class Game:
     def __init__(self, width, height, snake):
@@ -164,50 +129,43 @@ class Game:
             grid.append(row)
         self.grid = grid
         self.snake = snake
+        self.width = width
+        self.height = height
         self.gen_food()
 
     def gen_food(self):
-        def already_occupied(x, y):
-            already_occupied = False
-            for (square, _dir) in self.snake.body:
-                if x == square.x and y == square.y:
-                    already_occupied = True
-            return already_occupied
-        gen_x = lambda x : random.randint(1, x - 3)
-        gen_y = lambda y : random.randint(1, y - 1)
+        def already_occupied(square):
+            occupied = False
+            for (snake_square, _dir) in self.snake.body:
+                if square == snake_square:
+                    occupied = True
+            return occupied
+        gen_x = lambda x : random.randint(0, x - 3)
+        gen_y = lambda y : random.randint(0, y - 1)
         x = gen_x(WIDTH); y = gen_y(HEIGHT)
-        while already_occupied(x, y):
+        while already_occupied(Square(x=x, y=y)):
             x = gen_x(WIDTH); y = gen_y(HEIGHT)
         self.food = Square(x=x, y=y)
-
-    def out_of_bounds(self, square):
-        height = len(self.grid)
-        width = len(self.grid[0])
-        left = square.x < 0
-        right = square.x > width - 3
-        top = square.y < 0
-        bottom = square.y > height - 1
-        return left or right or top or bottom
 
     def display(self):
         def print_border(symbol):
             line = ''
-            for i in range(WIDTH):
+            for i in range(self.width):
                 line += symbol
             print(line)
         print_border('_')
-        for row in range(len(self.grid)):
+        for row in range(self.height):
             print('|', end='')
-            for col in range(len(self.grid[row]) - 2):
+            for col in range(self.width - 2):
                 empty = True
                 if self.food.x == col and self.food.y == row:
-                    empty = False
                     print(FOOD_SYMBOL, end='')
+                    empty = False
                 else:
-                    for (segment, _dir) in self.snake.body:
-                        if segment.x == col and segment.y == row:
-                            empty = False
+                    for square, dir in self.snake.body:
+                        if square.x == col and square.y == row:
                             print(SNAKE_SYMBOL, end='')
+                            empty = False
                 if empty:
                     print(' ', end='')
             print('|')
@@ -217,21 +175,16 @@ if __name__ == '__main__':
     starting_dir = random_dir()
     snake = Snake(starting_dir, Square())
     game = Game(WIDTH, HEIGHT, snake)
-    is_interrupted = False
-    listener = keyboard.Listener(on_press=lambda key : (on_press(key, snake)))
+    game.display()
+    listener = keyboard.Listener(on_press=lambda key : on_press(key, snake))
     listener.start()
-    while not is_interrupted and not snake.self_collide():
+    while True:
         clear_screen()
         game.display()
         next_square = snake.next_square()
         if next_square == game.food:
             game.gen_food()
             snake.grow()
-        elif game.out_of_bounds(next_square):
-            snake.turn(snake.get_different_dir(game))
         else:
             snake.move()
         time.sleep(SPEED)
-    clear_screen()
-    game.display()
-    print('\nYour score:', snake.length())
